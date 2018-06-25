@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Nervos AppChain DApp Example</title>
+
+    <!-- web3.js for CITA -->
+    <script type="text/javascript" src="js/bignumber.js"></script>
+    <script type="text/javascript" src="js/web3-light.js"></script>
+
+    <!-- functions -->
+    <script type="text/javascript">
+        //params to send transaction
+        const privkey = '352416e1c910e413768c51390dfd791b414212b7b4fe6b1a18f58007fa894214';
+        const quota = 999999;
+        //deployed contract address
+        const contractAddress = "0xc83e7e875dc8f3d09ca1af863ae142697fc37398";
+        //AppChain address
+        const chainAddress = "http://47.94.105.230:1337";
+
+        //abi for deployed contract
+        const abi = [{
+                "constant": false,
+                "inputs": [],
+                "name": "getValue",
+                "outputs": [{
+                    "name": "",
+                    "type": "string"
+                }],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [{
+                    "name": "str",
+                    "type": "string"
+                }],
+                "name": "setValue",
+                "outputs": [],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+
+        // check first if the web3 is available
+        if (typeof web3 !== 'undefined') {
+            web3 = new Web3(web3.currentProvider);
+        } else {
+            // set the provider you want from Web3.providers
+            web3 = new Web3(new Web3.providers.HttpProvider(chainAddress));
+        }
+
+        console.log(web3.version.api);
+
+
+
+        //Contract util start
+        var setValueUntilBlock = function (web3, callback) {
+            web3.eth.getBlockNumber(function (err, res) {
+                if (!err) {
+                    commonParams = {
+                        privkey: privkey,
+                        nonce: getRandomInt(),
+                        quota: quota,
+                        validUntilBlock: res + 88,
+                        version: 0,
+                        chainId: 1
+                    };
+                    callback(commonParams);
+                } else {
+                    console.error(err)
+                }
+            });
+        }
+
+        var getRandomInt = function () {
+            return Math.floor(Math.random() * 100).toString();
+        }
+        //contract util end
+
+        //get value from contract.
+        function getValue() {
+            if (contractAddress != undefined && contractAddress != "default") {
+                var contract = web3.eth.contract(abi).at(contractAddress);
+                contract.getValue.call(
+                    function (error, result) {
+                        if (!error) {
+                            console.log("result from contract: " + result);
+                            document.getElementById("valueFromContract").value = result;
+                        } else {
+                            console.error("Cannot get value. Error: " + error);
+                        }
+                    }
+                )
+            } else {
+                console.err("Failed to get value: conrtact address is not correct.");
+            }
+        }
+
+        //set value from contract.
+        function setValue() {
+            var valueToSet = document.getElementById("valueToContract").value;
+            setValueUntilBlock(web3, function (params) {
+                var commonParams = params
+                var contract = web3.eth.contract(abi).at(contractAddress);
+
+                var result = contract.setValue(
+                    valueToSet, {
+                        ...commonParams,
+                        from: "0dbd369a741319fa5107733e2c9db9929093e3c7"
+                    }
+                );
+                console.log("result of setValue " + result);
+            })
+        }
+    </script>
+</head>
+
+<body>
+    <div class="container">
+
+        <h1 class="text-center" style="margin-bottom: 17px;">CITA Blockchain Example</h1>
+
+        <div id="getAndSet">
+            <div class="input-group">
+                <span class="input-group-addon" id="sizing-addon1">Current Value</span>
+                <input type="text" readonly id="valueFromContract" type="string" class="form-control"></input>
+                <span class="input-group-btn">
+                    <button type="button" class="btn btn-primary" onClick="getValue();"> Get </button>
+                </span>
+            </div>
+
+            <div class="input-group" style="top:17px">
+                <span class="input-group-addon" id="sizing-addon1">New Value</span>
+                <input id="valueToContract" type="string" class="form-control" placeholder="input a new value">
+                <span class="input-group-btn">
+                    <button type="button" class="btn btn-primary" onClick="setValue();"> Set </button>
+                </span>
+            </div>
+
+        </div>
+
+    </div>
+</body>
+
+</html>
